@@ -1,9 +1,10 @@
 # compress-multiphoton
-This is an open effort to introduce common compression methods for multiphoton calcium imaging movies and 3D stacks. 
+Most labs store raw data uncompressed resulting in excessive data storage requirements and data transfer times. 
+Here we coordinate efforts for adopting data compmression methods for multiphoton imaging of calcium and voltage signals and 3D stacks. 
+We invite all to critique and contribute to this project. 
 
-## Grayscale quantization
+## Aims
+We aim to introduce effectively lossless methods for data compression. 
+Scientists should be able trust the method to preserve all biologically relevant information even when the compression does not preserve a bit-for-bit match to the acquired data. 
 
-The first step for image compression is to enforce proper grayscale quantization of the images.
-Most two-photon acquisition systems, in our experience, are quantized with excessive grayscale resolution so that the least significant bits encode only noise. 
-
-We can requantize images using fewer bits  while avoiding introducing biases or extra variance.
+The Compression.ipynb notebook derives the lossless compression scheme aiming to achieve 4:1 - 6:1 compression ratio for typical imaging scenarios.
