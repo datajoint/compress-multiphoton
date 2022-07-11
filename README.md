@@ -1,5 +1,5 @@
 # compress-multiphoton
-Compression for multiphoton calcium imaging movies and stacks
+This is an open effort to introduce common compression methods for multiphoton calcium imaging movies and 3D stacks. 
 
 ## Grayscale quantization
 
