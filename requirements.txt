@@ -1,0 +1,5 @@
+numpy
+plotly
+tifffile
+matplotlib
+scikit-learn
