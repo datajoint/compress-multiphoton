@@ -17,7 +17,7 @@ def timer_func(func):
 
 
 def analyze(scan):
-    qs_output = compute_quantal_size(scan)
+    qs = compute_quantal_size(scan)
 
     print(f"Quantal size: {quantal_size}")
     print(f"Intercept: {zero_level}")
