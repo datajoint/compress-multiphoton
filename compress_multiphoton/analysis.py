@@ -17,22 +17,14 @@ def timer_func(func):
 
 
 def analyze(scan):
-    (
-        model,
-        min_intensity,
-        max_intensity,
-        unique_pixels,
-        unique_variances,
-        quantal_size,
-        zero_level,
-    ) = compute_quantal_size(scan)
+    qs_output = compute_quantal_size(scan)
 
     print(f"Quantal size: {quantal_size}")
     print(f"Intercept: {zero_level}")
 
-    x = np.arange(len(unique_pixels))
-    f = go.Figure(go.Scatter(x=unique_pixels, y=unique_variances, mode="markers"))
-    f.add_trace(go.Scatter(x=x, y=model.predict(x.reshape(-1, 1))))
+    x = np.arange(len(qs["unique_pixels"]))
+    f = go.Figure(go.Scatter(x=qs["unique_pixels"], y=qs["unique_variances"], mode="markers"))
+    f.add_trace(go.Scatter(x=x, y=qs["model"].predict(x.reshape(-1, 1))))
     f.update_layout(
         width=700,
         height=700,
