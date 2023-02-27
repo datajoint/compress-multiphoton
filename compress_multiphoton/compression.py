@@ -50,6 +50,7 @@ def compute_quantal_size(scan, max_acceptable_intensity=3000):
     output = dict(
         model=model,
         min_intensity=min_intensity,
+        max_intensity=max_intensity,
         unique_pixels=unique_pixels,
         unique_variances=unique_variances,
         quantal_size=quantal_size,
