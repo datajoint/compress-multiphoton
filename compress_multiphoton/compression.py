@@ -52,7 +52,7 @@ def compute_quantal_size(movie: np.array) -> dict:
     quantal_size = model.coef_[0]
     zero_level = -model.intercept_ / model.coef_[0]
 
-    output = dict(
+    return dict(
         model=model,
         min_intensity=cts_slice.start,
         max_intensity=cts_slice.stop,
@@ -61,8 +61,6 @@ def compute_quantal_size(movie: np.array) -> dict:
         quantal_size=quantal_size,
         zero_level=zero_level,
     )
-
-    return output
 
 
 def anscombe(frames, a0: float, a1: float, beta: float):
