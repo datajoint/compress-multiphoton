@@ -10,7 +10,22 @@ def _longest_run(bool_array):
     return slice(on[i], off[i])
 
 
-def compute_quantal_size(movie):
+def compute_quantal_size(movie: np.array) -> dict:
+    """Calculate quantal size for a movie.
+
+    Args:
+        movie (np.array):  A movie in the format (height, width, time).
+
+    Returns:
+        output (dict): A dictionary with the following keys:
+            - 'model': The fitted TheilSenRegressor model.
+            - 'min_intensity': Minimum intensity used.
+            - 'max_intensity': Maximum intensity used.
+            - 'intensity_levels': Intensity levels.
+            - 'variance': Variances at intensity levels.
+            - 'quantal_size': Estimated quantal size.
+            - 'zero_level': Estimated ADC gain.
+    """
     movie = movie.astype(np.int32, copy=False)
     intensity = (movie[:, :, :-1] + movie[:, :, 1:] + 1) // 2
     difference = movie[:, :, :-1] - movie[:, :, 1:]
@@ -41,8 +56,8 @@ def compute_quantal_size(movie):
         model=model,
         min_intensity=cts_slice.start,
         max_intensity=cts_slice.stop,
-        unique_intensities=intensity_levels,
-        unique_variances=variance,
+        intensity_levels=intensity_levels,
+        variance=variance,
         quantal_size=quantal_size,
         zero_level=zero_level,
     )
