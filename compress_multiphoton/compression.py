@@ -45,7 +45,7 @@ def compute_quantal_size(movie: np.array) -> dict:
         / counts
     )
 
-    intensity_levels = np.arange(cts_slice.start, cts_slice.stop)
+    intensity_levels = np.r_[cts_slice]
 
     model = TheilSenRegressor()
     model.fit(intensity_levels.reshape(-1, 1), variance)
