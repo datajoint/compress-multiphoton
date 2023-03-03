@@ -17,7 +17,7 @@ def compute_quantal_size(movie: np.array) -> dict:
         movie (np.array):  A movie in the format (height, width, time).
 
     Returns:
-        output (dict): A dictionary with the following keys:
+        dict: A dictionary with the following keys:
             - 'model': The fitted TheilSenRegressor model.
             - 'min_intensity': Minimum intensity used.
             - 'max_intensity': Maximum intensity used.
@@ -30,22 +30,24 @@ def compute_quantal_size(movie: np.array) -> dict:
     intensity = (movie[:, :, :-1] + movie[:, :, 1:] + 1) // 2
     difference = movie[:, :, :-1] - movie[:, :, 1:]
 
-    CTS_THRESHOLD = 1000
-    cts = np.bincount(intensity.flatten())
-    cts_slice = _longest_run(cts > CTS_THRESHOLD)
-    cts_slice = slice(max(cts_slice.stop * 20 // 100, cts_slice.start), cts_slice.stop)
+    MIN_COUNTS = 1000
+    counts = np.bincount(intensity.flatten())
+    counts_slice = _longest_run(counts > MIN_COUNTS)
+    counts_slice = slice(
+        max(counts_slice.stop * 20 // 100, counts_slice.start), counts_slice.stop
+    )
 
-    counts = counts[cts_slice]
-    idx = (intensity >= cts_slice.start) & (intensity < cts_slice.stop)
+    counts = counts[counts_slice]
+    idx = (intensity >= counts_slice.start) & (intensity < counts_slice.stop)
     variance = (
         np.bincount(
-            intensity[idx] - cts_slice.start,
+            intensity[idx] - counts_slice.start,
             weights=(np.float32(difference[idx]) ** 2) / 2,
         )
         / counts
     )
 
-    intensity_levels = np.arange(cts_slice.start, cts_slice.stop)
+    intensity_levels = np.arange(counts_slice.start, counts_slice.stop)
 
     model = TheilSenRegressor()
     model.fit(intensity_levels.reshape(-1, 1), variance)
@@ -54,8 +56,8 @@ def compute_quantal_size(movie: np.array) -> dict:
 
     output = dict(
         model=model,
-        min_intensity=cts_slice.start,
-        max_intensity=cts_slice.stop,
+        min_intensity=counts_slice.start,
+        max_intensity=counts_slice.stop,
         intensity_levels=intensity_levels,
         variance=variance,
         quantal_size=quantal_size,
