@@ -3,10 +3,13 @@ from sklearn.linear_model import TheilSenRegressor
 
 
 def _longest_run(bool_array):
-    """
-    find the longest contiguous segment of True values inside bool_array
-    :param bool_array: 1d array
-    :return: slice with start and stop for the longest contiguous block of True values.
+    """Find the longest contiguous segment of True values inside bool_array.
+
+    Args:
+        bool_array: 1d boolean array.
+
+    Returns:
+        Slice with start and stop for the longest contiguous block of True values.
     """
     step = np.diff(np.int8(bool_array), prepend=0, append=0)
     on = np.where(step == 1)[0]
@@ -62,8 +65,7 @@ def compute_quantal_size(movie: np.array) -> dict:
     return dict(
         model=model,
         min_intensity=counts_slice.start,
-        max_intensity=counts_slice.stop,
-        intensity_levels=intensity_levels,
+        max_intensity=counts_slice.stop - 1,
         variance=variance,
         quantal_size=quantal_size,
         zero_level=zero_level,
@@ -82,9 +84,9 @@ def anscombe(frames, a0: float, a1: float, beta: float):
         beta (float): Ratio of the quantization step to noise.
 
     Returns:
-        transformed_frames: _description_
+        transformed_frames: Transformed frame.
     """
-    transformed_frames = (2.0 / beta * np.sqrt(np.maximum(0, (frames + a0) / a1 + 0.375))).astype(
-        np.uint8
-    )
+    transformed_frames = (
+        2.0 / beta * np.sqrt(np.maximum(0, (frames + a0) / a1 + 0.375))
+    ).astype(np.uint8)
     return transformed_frames
