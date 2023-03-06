@@ -29,7 +29,6 @@ def compute_quantal_size(movie: np.array) -> dict:
             - 'model': The fitted TheilSenRegressor model.
             - 'min_intensity': Minimum intensity used.
             - 'max_intensity': Maximum intensity used.
-            - 'intensity_levels': Intensity levels.
             - 'variance': Variances at intensity levels.
             - 'quantal_size': Estimated quantal size.
             - 'zero_level': Estimated ADC gain.
