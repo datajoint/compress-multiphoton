@@ -33,6 +33,10 @@ def compute_quantal_size(movie: np.array) -> dict:
             - 'quantal_size': Estimated quantal size.
             - 'zero_level': Estimated ADC gain.
     """
+    assert (
+        movie.ndim == 3
+    ), f"A three dimensional (Height, Width, Time) grayscale movie is expected, got {movie.ndim}"
+
     movie = movie.astype(np.int32, copy=False)
     intensity = (movie[:, :, :-1] + movie[:, :, 1:] + 1) // 2
     difference = movie[:, :, :-1] - movie[:, :, 1:]
