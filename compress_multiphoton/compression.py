@@ -3,6 +3,11 @@ from sklearn.linear_model import TheilSenRegressor
 
 
 def _longest_run(bool_array):
+    """
+    find the longest contiguous segment of True values inside bool_array
+    :param bool_array: 1d array
+    :return: slice with start and stop for the longest contiguous block of True values.
+    """
     step = np.diff(np.int8(bool_array), prepend=0, append=0)
     on = np.where(step == 1)[0]
     off = np.where(step == -1)[0]
