@@ -84,7 +84,7 @@ def anscombe(frames, a0: float, a1: float, beta: float):
     Returns:
         transformed_frames: _description_
     """
-    transformed_frames = (2.0 / beta * np.sqrt((frames + a0) / a1 + 0.375)).astype(
+    transformed_frames = (2.0 / beta * np.sqrt(np.maximum(0, (frames + a0) / a1 + 0.375))).astype(
         np.uint8
     )
     return transformed_frames
