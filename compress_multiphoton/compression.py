@@ -47,6 +47,9 @@ def compute_quantal_size(movie: np.array) -> dict:
     counts_slice = slice(
         max(counts_slice.stop * 20 // 100, counts_slice.start), counts_slice.stop
     )
+    assert (
+        counts_slice.stop - counts_slice.start - movie.max() * 0.10 > 0
+    ), f"At least intensity level {movie.max() * 0.10} is expected, got {counts_slice.stop - counts_slice.start}."
 
     counts = counts[counts_slice]
     idx = (intensity >= counts_slice.start) & (intensity < counts_slice.stop)
