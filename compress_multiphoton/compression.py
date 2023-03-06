@@ -31,7 +31,7 @@ def compute_quantal_size(movie: np.array) -> dict:
             - 'max_intensity': Maximum intensity used.
             - 'variance': Variances at intensity levels.
             - 'quantal_size': Estimated quantal size.
-            - 'zero_level': Estimated ADC gain.
+            - 'zero_level': DC offset.
     """
     assert (
         movie.ndim == 3
