@@ -41,7 +41,7 @@ def compute_quantal_size(movie: np.array) -> dict:
     intensity = (movie[:, :, :-1] + movie[:, :, 1:] + 1) // 2
     difference = movie[:, :, :-1] - movie[:, :, 1:]
 
-    MIN_COUNTS = 1000
+    MIN_COUNTS = 100
     counts = np.bincount(intensity.flatten())
     counts_slice = _longest_run(counts > MIN_COUNTS)
     counts_slice = slice(
