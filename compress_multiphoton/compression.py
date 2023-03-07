@@ -49,7 +49,7 @@ def compute_quantal_size(movie: np.array) -> dict:
     )
     assert (
         counts_slice.stop - counts_slice.start > 0.10 * movie.max() 
-    ), f"At least intensity level {movie.max() * 0.10} is expected, got {counts_slice.stop - counts_slice.start}."
+    ), f"The image does not have a sufficient range of intensities to compute the noise transfer function."
 
     counts = counts[counts_slice]
     idx = (intensity >= counts_slice.start) & (intensity < counts_slice.stop)
