@@ -2,50 +2,97 @@ import numpy as np
 from sklearn.linear_model import TheilSenRegressor
 
 
-def compute_quantal_size(scan):
-    # Set some params
-    num_frames = scan.shape[2]
-    # min_count = num_frames * 0.1  # pixel values with fewer appearances will be ignored
-    min_count = scan.min()
-    max_acceptable_intensity = 3000  # pixel values higher than this will be ignored
-    # max_acceptable_intensity = 100000
+def _longest_run(bool_array):
+    """Find the longest contiguous segment of True values inside bool_array.
 
-    # Make sure field is at least 32 bytes (int16 overflows if summed to itself)
-    scan = scan.astype(np.float32, copy=False)
+    Args:
+        bool_array: 1d boolean array.
 
-    # Create pixel values at each position in field
-    eps = 1e-4  # needed for np.round to not be biased towards even numbers (0.5 -> 1, 1.5 -> 2, 2.5 -> 3, etc.)
-    pixels = np.round((scan[:, :, :-1] + scan[:, :, 1:]) / 2 + eps)
+    Returns:
+        Slice with start and stop for the longest contiguous block of True values.
+    """
+    step = np.diff(np.int8(bool_array), prepend=0, append=0)
+    on = np.where(step == 1)[0]
+    off = np.where(step == -1)[0]
+    i = np.argmax(off - on)
+    return slice(on[i], off[i])
 
-    pixels = pixels.astype(np.int16 if np.max(abs(pixels)) < 2**15 else np.int32)
 
-    # Compute a good range of pixel values (common, not too bright values)
-    unique_pixels, counts = np.unique(pixels, return_counts=True)
-    min_intensity = min(unique_pixels[counts > min_count])
-    max_intensity = max(unique_pixels[counts > min_count])
-    max_acceptable_intensity = min(max_intensity, max_acceptable_intensity)
-    pixels_mask = np.logical_and(pixels >= min_intensity, pixels <= max_acceptable_intensity)
+def compute_quantal_size(movie: np.array) -> dict:
+    """Calculate quantal size for a movie.
 
-    # Select pixels in good range
-    pixels = pixels[pixels_mask]
-    unique_pixels, counts = np.unique(pixels, return_counts=True)
+    Args:
+        movie (np.array):  A movie in the format (height, width, time).
 
-    # Compute noise variance
-    variances = ((scan[:, :, :-1] - scan[:, :, 1:]) ** 2 / 2)[pixels_mask]
-    pixels -= min_intensity
-    variance_sum = np.zeros(len(unique_pixels))  # sum of variances per pixel value
-    for i in range(0, len(pixels), int(1e8)):  # chunk it for memory efficiency
-        variance_sum += np.bincount(
-            pixels[i : i + int(1e8)], weights=variances[i : i + int(1e8)], minlength=np.ptp(unique_pixels) + 1
-        )[unique_pixels - min_intensity]
-    unique_variances = variance_sum / counts  # average variance per intensity
+    Returns:
+        dict: A dictionary with the following keys:
+            - 'model': The fitted TheilSenRegressor model.
+            - 'min_intensity': Minimum intensity used.
+            - 'max_intensity': Maximum intensity used.
+            - 'variance': Variances at intensity levels.
+            - 'quantal_size': Estimated quantal size.
+            - 'zero_level': DC offset.
+    """
+    assert (
+        movie.ndim == 3
+    ), f"A three dimensional (Height, Width, Time) grayscale movie is expected, got {movie.ndim}"
 
-    # Compute quantal size (by fitting a linear regressor to predict the variance from intensity)
-    X = unique_pixels.reshape(-1, 1)
-    y = unique_variances
-    model = TheilSenRegressor()  # robust regression
-    model.fit(X, y)
+    movie = movie.astype(np.int32, copy=False)
+    intensity = (movie[:, :, :-1] + movie[:, :, 1:] + 1) // 2
+    difference = movie[:, :, :-1] - movie[:, :, 1:]
+
+    MIN_COUNTS = 100
+    counts = np.bincount(intensity.flatten())
+    counts_slice = _longest_run(counts > MIN_COUNTS)
+    counts_slice = slice(
+        max(counts_slice.stop * 20 // 100, counts_slice.start), counts_slice.stop
+    )
+    assert (
+        counts_slice.stop - counts_slice.start > 0.10 * movie.max() 
+    ), f"The image does not have a sufficient range of intensities to compute the noise transfer function."
+
+    counts = counts[counts_slice]
+    idx = (intensity >= counts_slice.start) & (intensity < counts_slice.stop)
+    variance = (
+        np.bincount(
+            intensity[idx] - counts_slice.start,
+            weights=(np.float32(difference[idx]) ** 2) / 2,
+        )
+        / counts
+    )
+
+    intensity_levels = np.r_[counts_slice]
+
+    model = TheilSenRegressor()
+    model.fit(intensity_levels.reshape(-1, 1), variance)
     quantal_size = model.coef_[0]
     zero_level = -model.intercept_ / model.coef_[0]
 
-    return (model, min_intensity, max_intensity, unique_pixels, unique_variances, quantal_size, zero_level)
+    return dict(
+        model=model,
+        min_intensity=counts_slice.start,
+        max_intensity=counts_slice.stop - 1,
+        variance=variance,
+        quantal_size=quantal_size,
+        zero_level=zero_level,
+    )
+
+
+def anscombe(frames, a0: float, a1: float, beta: float):
+    """Compute the Anscombe variance stabilizing transform.
+
+    Transforms a Poisson distributed signals in video recordings to...
+
+    Args:
+        frames (np.array_like): Single channel (gray scale) imaging frames, volume or video.
+        a0 (float): Intercept of the photon transfer curve (offset)
+        a1 (float): Slope of the photon transfer curve (ADC gain)
+        beta (float): Ratio of the quantization step to noise.
+
+    Returns:
+        transformed_frames: Transformed frame.
+    """
+    transformed_frames = (
+        2.0 / beta * np.sqrt(np.maximum(0, (frames + a0) / a1 + 0.375))
+    ).astype(np.uint8)
+    return transformed_frames
