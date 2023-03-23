@@ -38,8 +38,13 @@ def compute_quantal_size(movie: np.array) -> dict:
     ), f"A three dimensional (Height, Width, Time) grayscale movie is expected, got {movie.ndim}"
 
     movie = movie.astype(np.int32, copy=False)
+    #movie -= movie.min() ### This needs a safeguard
     intensity = (movie[:, :, :-1] + movie[:, :, 1:] + 1) // 2
     difference = movie[:, :, :-1] - movie[:, :, 1:]
+
+    criteria = intensity > 0
+    intensity = intensity[criteria]
+    difference = difference[criteria]
 
     MIN_COUNTS = 100
     counts = np.bincount(intensity.flatten())
@@ -48,7 +53,7 @@ def compute_quantal_size(movie: np.array) -> dict:
         max(counts_slice.stop * 20 // 100, counts_slice.start), counts_slice.stop
     )
     assert (
-        counts_slice.stop - counts_slice.start > 0.10 * movie.max() 
+        counts_slice.stop - counts_slice.start > 0.10 * movie.max()
     ), f"The image does not have a sufficient range of intensities to compute the noise transfer function."
 
     counts = counts[counts_slice]
