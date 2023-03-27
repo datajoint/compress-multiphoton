@@ -1,7 +1,7 @@
 import numpy as np
 from time import time
 import plotly.graph_objects as go
-from .compression import compute_quantal_size
+from .compression import compute_sensitivity
 
 
 def timer_func(func):
@@ -19,7 +19,7 @@ def timer_func(func):
 def analyze(scan):
     qs = compute_quantal_size(scan)
 
-    print(f'Quantal size: {qs["quantal_size"]}')
+    print(f'Quantal size: {qs["sensitivity"]}')
     print(f'Intercept: {qs["zero_level"]}')
 
     x = np.arange(qs["min_intensity"], qs["max_intensity"])
