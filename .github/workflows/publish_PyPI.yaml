@@ -23,7 +23,7 @@ jobs:
           pip install setuptools wheel twine
 
       - name: Build and Publish Package to TestPyPI
-        if: ${{ github.ref == 'refs/tags/test'* }}
+        if: ${{ contains(github.ref, 'refs/tags/test') }}
         env:
           TWINE_USERNAME: ${{ secrets.TWINE_TEST_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.TWINE_TEST_PASSWORD }}
@@ -32,7 +32,7 @@ jobs:
           twine upload --repository-url https://test.pypi.org/legacy/ dist/*
       
       - name: Build and Publish Package to PyPI
-        if: ${{ ( github.ref != 'refs/tags/test'* ) && github.repository_owner == 'datajoint' }}
+        if: ${{ ( !contains(github.ref, 'refs/tags/test') ) && github.repository_owner == 'datajoint' }}
         env:
           TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
           TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
