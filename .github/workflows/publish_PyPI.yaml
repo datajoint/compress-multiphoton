@@ -1,0 +1,41 @@
+name: Publish PyPI Package
+on:
+  push:
+    tags:
+      - '*.*.*'
+      - 'test*.*.*'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v2
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.9'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install setuptools wheel twine
+
+      - name: Build and Publish Package to TestPyPI
+        if: ${{ contains(github.ref, 'refs/tags/test') }}
+        env:
+          TWINE_USERNAME: ${{ secrets.TWINE_TEST_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.TWINE_TEST_PASSWORD }}
+        run: |
+          python setup.py sdist bdist_wheel
+          twine upload --repository-url https://test.pypi.org/legacy/ dist/*
+      
+      - name: Build and Publish Package to PyPI
+        if: ${{ ( !contains(github.ref, 'refs/tags/test') ) && github.repository_owner == 'datajoint' }}
+        env:
+          TWINE_USERNAME: ${{ secrets.TWINE_USERNAME }}
+          TWINE_PASSWORD: ${{ secrets.TWINE_PASSWORD }}
+        run: |
+          python setup.py sdist bdist_wheel
+          twine upload dist/*
