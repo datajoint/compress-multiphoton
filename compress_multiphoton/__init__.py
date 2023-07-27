@@ -1,4 +1,4 @@
-from .compression import compute_quantal_size
+from .compression import compute_sensitivity
 from .analysis import analyze
 
-__all__ = ["compute_quantal_size", "analyze"]
+__all__ = ["compute_sensitivity", "analyze"]

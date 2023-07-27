@@ -18,7 +18,7 @@ def _longest_run(bool_array):
     return slice(on[i], off[i])
 
 
-def compute_quantal_size(movie: np.array) -> dict:
+def compute_sensitivity(movie: np.array) -> dict:
     """Calculate quantal size for a movie.
 
     Args:
@@ -30,8 +30,8 @@ def compute_quantal_size(movie: np.array) -> dict:
             - 'min_intensity': Minimum intensity used.
             - 'max_intensity': Maximum intensity used.
             - 'variance': Variances at intensity levels.
-            - 'quantal_size': Estimated quantal size.
-            - 'zero_level': DC offset.
+            - 'sensitivity': Sensitivity.
+            - 'zero_level': X-intercept.
     """
     assert (
         movie.ndim == 3
@@ -41,14 +41,18 @@ def compute_quantal_size(movie: np.array) -> dict:
     intensity = (movie[:, :, :-1] + movie[:, :, 1:] + 1) // 2
     difference = movie[:, :, :-1] - movie[:, :, 1:]
 
-    MIN_COUNTS = 100
+    criteria = intensity > 0
+    intensity = intensity[criteria]
+    difference = difference[criteria]
+
+    MIN_COUNTS = 30
     counts = np.bincount(intensity.flatten())
     counts_slice = _longest_run(counts > MIN_COUNTS)
     counts_slice = slice(
         max(counts_slice.stop * 20 // 100, counts_slice.start), counts_slice.stop
     )
     assert (
-        counts_slice.stop - counts_slice.start > 0.10 * movie.max() 
+        counts_slice.stop - counts_slice.start > 0.10 * movie.max()
     ), f"The image does not have a sufficient range of intensities to compute the noise transfer function."
 
     counts = counts[counts_slice]
@@ -65,15 +69,15 @@ def compute_quantal_size(movie: np.array) -> dict:
 
     model = TheilSenRegressor()
     model.fit(intensity_levels.reshape(-1, 1), variance)
-    quantal_size = model.coef_[0]
+    sensitivity = model.coef_[0]
     zero_level = -model.intercept_ / model.coef_[0]
 
     return dict(
         model=model,
         min_intensity=counts_slice.start,
-        max_intensity=counts_slice.stop - 1,
+        max_intensity=counts_slice.stop,
         variance=variance,
-        quantal_size=quantal_size,
+        sensitivity=sensitivity,
         zero_level=zero_level,
     )
 
