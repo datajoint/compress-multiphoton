@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import HuberRegressor as Regressor
 
 
 def _longest_run(bool_array):
@@ -37,7 +37,7 @@ def compute_sensitivity(movie: np.array) -> dict:
         movie.ndim == 3
     ), f"A three dimensional (Height, Width, Time) grayscale movie is expected, got {movie.ndim}"
 
-    movie = movie.astype(np.int32, copy=False)
+    movie = np.maximum(0, movie.astype(np.int32, copy=False))
     intensity = (movie[:, :, :-1] + movie[:, :, 1:] + 1) // 2
     difference = movie[:, :, :-1].astype(np.float32) - movie[:, :, 1:]
 
@@ -61,7 +61,7 @@ def compute_sensitivity(movie: np.array) -> dict:
         )
         / counts
     )
-    model = LinearRegression()
+    model = Regressor()
     model.fit(np.c_[bins], variance, counts)
     sensitivity = model.coef_[0]
     zero_level = - model.intercept_ / model.coef_[0]
