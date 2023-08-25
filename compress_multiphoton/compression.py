@@ -1,5 +1,5 @@
 import numpy as np
-from sklearn.linear_model import TheilSenRegressor
+from sklearn.linear_model import HuberRegressor as Regressor
 
 
 def _longest_run(bool_array):
@@ -37,52 +37,46 @@ def compute_sensitivity(movie: np.array) -> dict:
         movie.ndim == 3
     ), f"A three dimensional (Height, Width, Time) grayscale movie is expected, got {movie.ndim}"
 
-    movie = movie.astype(np.int32, copy=False)
+    movie = np.maximum(0, movie.astype(np.int32, copy=False))
     intensity = (movie[:, :, :-1] + movie[:, :, 1:] + 1) // 2
-    difference = movie[:, :, :-1] - movie[:, :, 1:]
+    difference = movie[:, :, :-1].astype(np.float32) - movie[:, :, 1:]
 
-    criteria = intensity > 0
-    intensity = intensity[criteria]
-    difference = difference[criteria]
+    select = intensity > 0
+    intensity = intensity[select]
+    difference = difference[select]
 
-    MIN_COUNTS = 30
     counts = np.bincount(intensity.flatten())
-    counts_slice = _longest_run(counts > MIN_COUNTS)
-    counts_slice = slice(
-        max(counts_slice.stop * 20 // 100, counts_slice.start), counts_slice.stop
-    )
+    bins = _longest_run(counts > 0.01 * counts.mean())
+    bins = slice(max(bins.stop * 3 // 100, bins.start), bins.stop)
     assert (
-        counts_slice.stop - counts_slice.start > 0.10 * movie.max()
+        bins.stop - bins.start > 100
     ), f"The image does not have a sufficient range of intensities to compute the noise transfer function."
 
-    counts = counts[counts_slice]
-    idx = (intensity >= counts_slice.start) & (intensity < counts_slice.stop)
+    counts = counts[bins]
+    idx = (intensity >= bins.start) & (intensity < bins.stop)
     variance = (
         np.bincount(
-            intensity[idx] - counts_slice.start,
-            weights=(np.float32(difference[idx]) ** 2) / 2,
+            intensity[idx] - bins.start,
+            weights=(difference[idx] ** 2) / 2,
         )
         / counts
     )
-
-    intensity_levels = np.r_[counts_slice]
-
-    model = TheilSenRegressor()
-    model.fit(intensity_levels.reshape(-1, 1), variance)
+    model = Regressor()
+    model.fit(np.c_[bins], variance, counts)
     sensitivity = model.coef_[0]
-    zero_level = -model.intercept_ / model.coef_[0]
+    zero_level = - model.intercept_ / model.coef_[0]
 
     return dict(
         model=model,
-        min_intensity=counts_slice.start,
-        max_intensity=counts_slice.stop,
+        min_intensity=bins.start,
+        max_intensity=bins.stop,
         variance=variance,
         sensitivity=sensitivity,
         zero_level=zero_level,
     )
 
 
-def anscombe(frames, a0: float, a1: float, beta: float):
+def anscombe(frames, a0: float, a1: float, beta: float = 2.0):
     """Compute the Anscombe variance stabilizing transform.
 
     Transforms a Poisson distributed signals in video recordings to...

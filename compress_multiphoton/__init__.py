@@ -1,4 +1,3 @@
-from .compression import compute_sensitivity
-from .analysis import analyze
+from .compression import compute_sensitivity, anscombe
 
-__all__ = ["compute_sensitivity", "analyze"]
+__all__ = ["compute_sensitivity", "anscombe"]
