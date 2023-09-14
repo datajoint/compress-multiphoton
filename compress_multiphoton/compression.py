@@ -18,8 +18,8 @@ def _longest_run(bool_array):
     return slice(on[i], off[i])
 
 
-def compute_sensitivity(movie: np.array) -> dict:
-    """Calculate quantal size for a movie.
+def compute_sensitivity(movie: np.array, count_weight_gamma=0.2) -> dict:
+    """Calculate quantal sensitivity
 
     Args:
         movie (np.array):  A movie in the format (height, width, time).
@@ -46,7 +46,7 @@ def compute_sensitivity(movie: np.array) -> dict:
     difference = difference[select]
 
     counts = np.bincount(intensity.flatten())
-    bins = _longest_run(counts > 0.01 * counts.mean())
+    bins = _longest_run(counts > 0.01 * counts.mean())  # consider only bins with at least 1% of mean counts 
     bins = slice(max(bins.stop * 3 // 100, bins.start), bins.stop)
     assert (
         bins.stop - bins.start > 100
@@ -62,7 +62,7 @@ def compute_sensitivity(movie: np.array) -> dict:
         / counts
     )
     model = Regressor()
-    model.fit(np.c_[bins], variance, counts)
+    model.fit(np.c_[bins], variance, counts ** count_weight_gamma)
     sensitivity = model.coef_[0]
     zero_level = - model.intercept_ / model.coef_[0]
 
@@ -76,21 +76,15 @@ def compute_sensitivity(movie: np.array) -> dict:
     )
 
 
-def anscombe(frames, a0: float, a1: float, beta: float = 2.0):
-    """Compute the Anscombe variance stabilizing transform.
-
-    Transforms a Poisson distributed signals in video recordings to...
-
-    Args:
-        frames (np.array_like): Single channel (gray scale) imaging frames, volume or video.
-        a0 (float): Intercept of the photon transfer curve (offset)
-        a1 (float): Slope of the photon transfer curve (ADC gain)
-        beta (float): Ratio of the quantization step to noise.
-
-    Returns:
-        transformed_frames: Transformed frame.
-    """
-    transformed_frames = (
-        2.0 / beta * np.sqrt(np.maximum(0, (frames + a0) / a1 + 0.375))
-    ).astype(np.uint8)
-    return transformed_frames
+def make_anscombe_luts(zero_level: int, sensitivity: float, input_max: int, beta: float = 2.0):
+    # produce anscombe LUT1 and LUT2
+    xx = (np.r_[:input_max] - zero_level) / sensitivity
+    zero_slope = 1 / beta / np.sqrt(3/8)
+    offset = -xx.min() * zero_slope
+    LUT1 = np.uint8(
+        offset +
+        (xx < 0) * (xx * zero_slope) +
+        (xx >= 0) * (2.0 / beta * (np.sqrt(np.maximum(0, xx) + 3/8) - np.sqrt(3/8))))
+    _, LUT2 = np.unique(LUT1, return_index=True)
+    LUT2 += (np.r_[:LUT2.size] / LUT2.size * (LUT2[-1] - LUT2[-2])/2).astype('int16')
+    return LUT1, LUT2.astype('int16')
