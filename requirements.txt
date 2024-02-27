@@ -3,3 +3,5 @@ plotly
 tifffile
 matplotlib
 scikit-learn
+imageio
+colorcet
